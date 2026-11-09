@@ -1,0 +1,41 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: bufbuild/buf-setup-action@v1
+        with:
+          github_token: ${{ github.token }}
+
+      - name: Generar stubs de contratos
+        run: make proto
+
+      # Los pasos siguientes se activan solos cuando exista el proyecto .NET (Fase 2).
+      - uses: actions/setup-dotnet@v4
+        if: hashFiles('**/*.sln', '**/*.csproj') != ''
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Restore
+        if: hashFiles('**/*.sln', '**/*.csproj') != ''
+        run: dotnet restore
+
+      - name: Build
+        if: hashFiles('**/*.sln', '**/*.csproj') != ''
+        run: dotnet build --no-restore -c Release
+
+      - name: Tests
+        if: hashFiles('**/*.sln', '**/*.csproj') != ''
+        run: dotnet test --no-build -c Release
+
+      - name: Build de imagen Docker
+        if: hashFiles('Dockerfile') != ''
+        run: docker build -t beacon-notifications:ci .

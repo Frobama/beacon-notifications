@@ -1,0 +1,10 @@
+bin/
+obj/
+gen/
+*.user
+.vs/
+TestResults/
+coverage/
+.env
+.idea/
+.vscode/
